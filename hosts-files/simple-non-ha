@@ -12,7 +12,7 @@ ansible_ssh_user=root
 ### OpenShift Basic Vars
 ###########################################################################
 
-openshift_deployment_type=openshift-enterprise
+deployment_type=openshift-enterprise
 debug_level=4
 # openshift_disable_check=disk_availability,memory_availability
 
