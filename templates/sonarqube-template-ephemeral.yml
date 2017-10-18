@@ -1,0 +1,213 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: sonarqube-ephemeral
+  annotations:
+    description: "SonarQube Template. Static code analysis. Designed to be deployed with a persistent MySQL database."
+    tags: "sonarqube,instant-app,cicd"
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: sonarqube
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${SONARQUBE_NAME}-mysql
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: ${SONARQUBE_NAME}-mysql
+      container: ${SONARQUBE_NAME}-mysql
+      app: ${SONARQUBE_NAME}
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          deploymentconfig: ${SONARQUBE_NAME}-mysql
+          container: ${SONARQUBE_NAME}-mysql
+          app: ${SONARQUBE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_DATABASE
+            value: ${MYSQL_DATABASE}
+          - name: MYSQL_PASSWORD
+            value: ${MYSQL_PASSWORD}
+          - name: MYSQL_ROOT_PASSWORD
+            value: ${MYSQL_ROOT_PASSWORD}
+          - name: MYSQL_USER
+            value: ${MYSQL_USER}
+          image: registry.access.redhat.com/rhscl/mysql-56-rhel7
+          imagePullPolicy: Always
+          name: ${SONARQUBE_NAME}-mysql
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/lib/mysql/data
+            name: mysql
+        ports:
+          - name: mysql
+            containerPort: 3306
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        serviceAccount: sonarqube
+        volumes:
+        - name: mysql
+          emptyDir: {}
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: ${SONARQUBE_NAME}-mysql
+    labels:
+      service: ${SONARQUBE_NAME}-mysql
+  spec:
+    ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP
+    selector:
+      deploymentconfig: ${SONARQUBE_NAME}-mysql
+      container: ${SONARQUBE_NAME}-mysql
+      app: ${SONARQUBE_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${SONARQUBE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: ${SONARQUBE_NAME}
+      container: ${SONARQUBE_NAME}
+      app: ${SONARQUBE_NAME}
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          deploymentconfig: ${SONARQUBE_NAME}
+          container: ${SONARQUBE_NAME}
+          app: ${SONARQUBE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: SONARQUBE_JDBC_URL
+            value: ${SONARQUBE_JDBC_URL}
+          - name: SONARQUBE_JDBC_USERNAME
+            value: ${MYSQL_USER}
+          - name: SONARQUBE_JDBC_PASSWORD
+            value: ${MYSQL_PASSWORD}
+          image: docker.io/sonarqube:6.3
+          imagePullPolicy: Always
+          name: ${SONARQUBE_NAME}
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /opt/sonarqube/data
+            name: sonarqube-data
+          - mountPath: /opt/sonarqube/extensions
+            name: sonarqube-extensions
+          - mountPath: /opt/sonarqube/logs
+            name: sonarqube-logs
+        ports:
+          - name: http
+            containerPort: 9000
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        serviceAccount: sonarqube
+        volumes:
+        - name: sonarqube-data
+          emptyDir: {}
+        - name: sonarqube-extensions
+          emptyDir: {}
+        - name: sonarqube-logs
+          emptyDir: {}
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    name: ${SONARQUBE_NAME}
+    labels:
+      service: ${SONARQUBE_NAME}
+  spec:
+    ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+      protocol: TCP
+    selector:
+      deploymentconfig: ${SONARQUBE_NAME}
+      container: ${SONARQUBE_NAME}
+      app: ${SONARQUBE_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${SONARQUBE_NAME}
+    labels:
+      app: ${SONARQUBE_NAME}
+  spec:
+    host: ${APPLICATION_HOSTNAME}
+    to:
+      kind: Service
+      name: ${SONARQUBE_NAME}
+parameters:
+- description: "Name of the SonarQube deployment"
+  value: "sonarqube"
+  name: SONARQUBE_NAME
+  required: true
+- description: "Hostname og the application = Name of the project + Sub domain of the OCP cluster"
+  value: "sonarqube.cloudapps.example.com"
+  name: APPLICATION_HOSTNAME
+  required: true
+- description: "JDBC Url to access database for SonarQube"
+  value: "jdbc:mysql://sonarqube-mysql:3306/sonar?useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true"
+  name: SONARQUBE_JDBC_URL
+  required: true
+- description: "MYSQL Database name for SonarQube. Default: sonar"
+  value: "sonar"
+  name: MYSQL_DATABASE
+  required: false
+- description: "MYSQL Database password for SonarQube. Default: sonar"
+  value: "sonar"
+  name: MYSQL_PASSWORD
+  required: true
+- description: "MYSQL Database root password for SonarQube. Default: sonar"
+  value: "sonar"
+  name: MYSQL_ROOT_PASSWORD
+  required: true
+- description: "MYSQL Database user for SonarQube. Default: sonar"
+  value: "sonar"
+  name: MYSQL_USER
+  required: true
