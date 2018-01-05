@@ -1,0 +1,238 @@
+[OSEv3:vars]
+
+###########################################################################
+### Ansible Vars
+###########################################################################
+timeout=60
+# Optional, only if user is not root
+ansible_ssh_user=root
+# ansible_become=yes
+
+###########################################################################
+### OpenShift Basic Vars
+###########################################################################
+
+debug_level=4
+
+deployment_type=openshift-enterprise
+openshift_release=v3.7
+containerized=false
+
+openshift_disable_check=disk_availability,memory_availability,package_availability,docker_image_availability,docker_storage,docker_storage_driver,package_version,package_availability,package_update
+openshift_node_kubelet_args={'pods-per-core': ['10'], 'max-pods': ['250'], 'image-gc-high-threshold': ['85'], 'image-gc-low-threshold': ['75']}
+logrotate_scripts=[{"name": "syslog", "path": "/var/log/cron\n/var/log/maillog\n/var/log/messages\n/var/log/secure\n/var/log/spooler\n", "options": ["daily", "rotate 7","size 500M", "compress", "sharedscripts", "missingok"], "scripts": {"postrotate": "/bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true"}}]
+openshift_master_audit_config={"enabled": true, "auditFilePath": "/var/log/openpaas-oscp-audit/openpaas-oscp-audit.log", "maximumFileRetentionDays": 14, "maximumFileSizeMegabytes": 500, "maximumRetainedFiles": 5}
+openshift_clock_enabled=true
+
+# default project node selector
+osm_default_node_selector='env=app'
+
+###########################################################################
+### OpenShift Optional Vars
+###########################################################################
+
+# Enable cockpit
+osm_use_cockpit=true
+osm_cockpit_plugins=['cockpit-kubernetes']
+
+###########################################################################
+### OpenShift Master Vars
+###########################################################################
+
+openshift_master_api_port=443
+openshift_master_console_port=443
+
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=lb.internal.tld
+openshift_master_cluster_public_hostname=lb.internal.tld
+openshift_master_default_subdomain=apps.example.com
+
+#openshift_master_overwrite_named_certificates=True
+#openshift_master_ca_certificate={'certfile': '/root/intermediate_ca.crt', 'keyfile': '/root/intermediate_ca.key'}
+
+openshift_set_hostname=True
+
+###########################################################################
+### OpenShift Network Vars
+###########################################################################
+
+# Default pod and service IP subnets 
+#osm_cluster_network_cidr=10.1.0.0/16
+#openshift_portal_net=172.30.0.0/16
+
+os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
+# os_sdn_network_plugin_name='redhat/openshift-ovs-subnet'
+
+
+###########################################################################
+### OpenShift Authentication Vars
+###########################################################################
+
+#openshift_master_identity_providers=[{'name': 'allow_all', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
+
+# htpasswd auth
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/users.htpasswd'},{'name': 'my_ldap_provider', 'challenge': 'true', 'login': 'true', 'kind': 'LDAPPasswordIdentityProvider', 'attributes': {'id': ['dn'], 'email': ['mail'], 'name': ['cn'], 'preferredUsername': ['uid']}, 'bindDN': 'uid=admin,CN=users,CN=accounts,DC=example,DC=com', 'bindPassword': 'my_password', 'insecure': 'true', 'url': 'ldap://myldap.com:389/cn=accounts,dc=example,dc=com?uid'}]
+# Defining htpasswd users
+# openshift_master_htpasswd_users={'user1': '$apr1$V39.mraN$wBl7rwr1KXUwQ5ZxWynlu0', 'user2': '$apr1$03QxjL8h$X8c8DVhSX.6MVJ3LDMhnm/'}
+# or
+# openshift_master_htpasswd_file=/root/htpasswd.openshift
+
+############################################################################
+### OpenShift Metrics Vars
+###########################################################################
+
+openshift_metrics_install_metrics=true
+openshift_metrics_storage_kind=nfs
+openshift_metrics_storage_access_modes=['ReadWriteOnce']
+openshift_metrics_storage_nfs_directory=/exports
+openshift_metrics_storage_nfs_options='*(rw,root_squash)'
+openshift_metrics_storage_volume_name=metrics
+openshift_metrics_storage_volume_size=10Gi
+openshift_metrics_cassandra_nodeselector={"env":"infra"}
+openshift_metrics_hawkular_nodeselector={"env":"infra"}
+openshift_metrics_heapster_nodeselector={"env":"infra"}
+
+## Add Prometheus Metrics:
+openshift_hosted_prometheus_deploy=true
+openshift_prometheus_node_selector={"env":"infra"}
+openshift_prometheus_namespace=openshift-metrics
+
+# Prometheus
+openshift_prometheus_storage_kind=nfs
+openshift_prometheus_storage_access_modes=['ReadWriteOnce']
+openshift_prometheus_storage_nfs_directory=/exports
+openshift_prometheus_storage_nfs_options='*(rw,root_squash)'
+openshift_prometheus_storage_volume_name=prometheus
+openshift_prometheus_storage_volume_size=10Gi
+openshift_prometheus_storage_labels={'storage': 'prometheus'}
+openshift_prometheus_storage_type='pvc'
+# For prometheus-alertmanager
+openshift_prometheus_alertmanager_storage_kind=nfs
+openshift_prometheus_alertmanager_storage_access_modes=['ReadWriteOnce']
+openshift_prometheus_alertmanager_storage_nfs_directory=/exports
+openshift_prometheus_alertmanager_storage_nfs_options='*(rw,root_squash)'
+openshift_prometheus_alertmanager_storage_volume_name=prometheus-alertmanager
+openshift_prometheus_alertmanager_storage_volume_size=10Gi
+openshift_prometheus_alertmanager_storage_labels={'storage': 'prometheus-alertmanager'}
+openshift_prometheus_alertmanager_storage_type='pvc'
+# For prometheus-alertbuffer
+openshift_prometheus_alertbuffer_storage_kind=nfs
+openshift_prometheus_alertbuffer_storage_access_modes=['ReadWriteOnce']
+openshift_prometheus_alertbuffer_storage_nfs_directory=/exports
+openshift_prometheus_alertbuffer_storage_nfs_options='*(rw,root_squash)'
+openshift_prometheus_alertbuffer_storage_volume_name=prometheus-alertbuffer
+openshift_prometheus_alertbuffer_storage_volume_size=10Gi
+openshift_prometheus_alertbuffer_storage_labels={'storage': 'prometheus-alertbuffer'}
+openshift_prometheus_alertbuffer_storage_type='pvc'
+
+###########################################################################
+### OpenShift Logging Vars
+###########################################################################
+
+openshift_logging_install_logging=true
+
+openshift_logging_storage_kind=nfs
+openshift_logging_storage_access_modes=['ReadWriteOnce']
+openshift_logging_storage_nfs_directory=/exports
+openshift_logging_storage_nfs_options='*(rw,root_squash)'
+openshift_logging_storage_volume_name=logging
+openshift_logging_storage_volume_size=10Gi
+openshift_logging_curator_default_days=7
+openshift_logging_curator_run_hour=0
+openshift_logging_curator_run_minute=0
+openshift_logging_kibana_nodeselector='env=infra'
+openshift_logging_es_nodeselector='{"env":"infra"}'
+openshift_logging_curator_nodeselector='env=infra'
+
+openshift_logging_use_ops=true
+openshift_logging_kibana_ops_nodeselector='env=infra'
+openshift_logging_curator_ops_nodeselector='env=infra'
+openshift_logging_es_ops_nodeselector='{"env":"infra"}'
+
+#openshift_logging_kibana_ca=/path/to/file
+#openshift_logging_kibana_ops_ca=/path/to/file
+
+# Scalabilité
+#openshift_logging_es_cluser_size=3
+#openshift_logging_es_ops_cluster_size=3
+
+###########################################################################
+### OpenShift Router and Registry Vars
+###########################################################################
+
+openshift_hosted_router_selector='env=infra'
+openshift_hosted_router_replicas=2
+#openshift_hosted_router_certificate={"certfile": "/path/to/router.crt", "keyfile": "/path/to/router.key", "cafile": "/path/to/router-ca.crt"}
+
+openshift_hosted_registry_selector='env=infra'
+openshift_hosted_registry_replicas=1
+
+openshift_hosted_registry_storage_kind=nfs
+openshift_hosted_registry_storage_access_modes=['ReadWriteMany']
+openshift_hosted_registry_storage_nfs_directory=/exports
+openshift_hosted_registry_storage_volume_name=registry
+openshift_hosted_registry_storage_volume_size=20Gi
+
+###########################################################################
+### OpenShift Service Catalog Vars
+###########################################################################
+
+openshift_enable_service_catalog=true
+template_service_broker_install=true
+openshift_template_service_broker_namespaces=['openshift']
+
+openshift_hosted_etcd_storage_kind=nfs
+openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
+openshift_hosted_etcd_storage_nfs_directory=/srv/nfs
+openshift_hosted_etcd_storage_volume_name=etcd-vol2
+openshift_hosted_etcd_storage_access_modes=["ReadWriteOnce"]
+openshift_hosted_etcd_storage_volume_size=5G
+openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
+
+###########################################################################
+### OpenShift Proxy Vars
+###########################################################################
+openshift_http_proxy=10.10.10.10
+openshift_https_proxy=10.10.10.10
+openshift_no_proxy=''
+
+###########################################################################
+### OpenShift Host Vars
+###########################################################################
+
+[OSEv3:children]
+masters
+nodes
+etcd
+nfs
+lb
+
+[nfs]
+nfs.internal.tld
+
+[lb]
+lb.internal.tld
+
+# host group for masters
+[masters]
+master1.internal.tld
+master2.internal.tld
+master3.internal.tld
+
+# host group for etcd
+[etcd]
+master1.internal.tld
+master2.internal.tld
+master3.internal.tld
+
+# host group for nodes, includes region info
+[nodes]
+master1.internal.tld openshift_schedulable=false
+master2.internal.tld openshift_schedulable=false
+master3.internal.tld openshift_schedulable=false
+
+infra1.internal.tld openshift_node_labels="{'env':'infra'}"
+infra2.internal.tld openshift_node_labels="{'env':'infra'}"
+
+node1.internal.tld openshift_node_labels="{'env':'app'}"
+node2.internal.tld openshift_node_labels="{'env':'app'}"
