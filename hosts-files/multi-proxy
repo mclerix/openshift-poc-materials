@@ -152,7 +152,12 @@ openshift_logging_es_ops_nodeselector='{"env":"infra"}'
 #openshift_logging_kibana_ca=/path/to/file
 #openshift_logging_kibana_ops_ca=/path/to/file
 
-# Scalabilité
+# Allows to get docker events in EFK
+#openshift_logging_fluentd_audit_container_engine=true
+# Allows to get OpenShift API events in EFK
+#openshift_logging_install_eventrouter=true
+
+# Scaled logging
 #openshift_logging_es_cluser_size=3
 #openshift_logging_es_ops_cluster_size=3
 
