@@ -1,0 +1,5 @@
+ansible all --list-hosts
+ansible all -m ping
+ansible nodes -m shell -a"systemctl status docker | grep Active"
+ansible nodes -m shell -a"yum repolist"
+ansible nfs -m shell -a"exportfs"
