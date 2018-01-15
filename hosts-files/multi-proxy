@@ -44,8 +44,10 @@ openshift_master_console_port=8443
 
 openshift_master_cluster_method=native
 # Set the hostname that resolve your loadbalancer
-openshift_master_cluster_hostname=lb.internal.tld
-openshift_master_cluster_public_hostname=lb.example.com
+# Internally
+openshift_master_cluster_hostname=master.example.com
+# Externally
+openshift_master_cluster_public_hostname=master.example.com
 # Should resolve to your infra nodes
 openshift_master_default_subdomain=apps.example.com
 
