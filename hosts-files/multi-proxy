@@ -39,14 +39,12 @@ osm_cockpit_plugins=['cockpit-kubernetes']
 ### OpenShift Master Vars
 ###########################################################################
 
-openshift_master_api_port=443
-openshift_master_console_port=443
+openshift_master_api_port=8443
+openshift_master_console_port=8443
 
 openshift_master_cluster_method=native
 # Set the hostname that resolve your loadbalancer
-# Internally
 openshift_master_cluster_hostname=lb.internal.tld
-# Externally
 openshift_master_cluster_public_hostname=lb.example.com
 # Should resolve to your infra nodes
 openshift_master_default_subdomain=apps.example.com
@@ -142,13 +140,13 @@ openshift_logging_storage_volume_size=10Gi
 openshift_logging_curator_default_days=7
 openshift_logging_curator_run_hour=0
 openshift_logging_curator_run_minute=0
-openshift_logging_kibana_nodeselector='env=infra'
+openshift_logging_kibana_nodeselector='{"env":"infra"}'
 openshift_logging_es_nodeselector='{"env":"infra"}'
-openshift_logging_curator_nodeselector='env=infra'
+openshift_logging_curator_nodeselector='{"env":"infra"}'
 
 openshift_logging_use_ops=true
-openshift_logging_kibana_ops_nodeselector='env=infra'
-openshift_logging_curator_ops_nodeselector='env=infra'
+openshift_logging_kibana_ops_nodeselector='{"env":"infra"}'
+openshift_logging_curator_ops_nodeselector='{"env":"infra"}'
 openshift_logging_es_ops_nodeselector='{"env":"infra"}'
 
 #openshift_logging_kibana_ca=/path/to/file
@@ -199,9 +197,17 @@ openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
 ###########################################################################
 ### OpenShift Proxy Vars
 ###########################################################################
-openshift_http_proxy=10.10.10.10
-openshift_https_proxy=10.10.10.10
-openshift_no_proxy=''
+openshift_http_proxy=http://10.10.10.10:8080
+openshift_https_proxy=http://10.10.10.10:8080
+openshift_no_proxy='172.30.0.0/16,10.1.0.0/16'
+
+openshift_builddefaults_http_proxy=http://10.10.10.10:8080
+openshift_builddefaults_https_proxy=http://10.10.10.10:8080
+openshift_builddefaults_no_proxy='172.30.0.0/16,10.1.0.0/16'
+
+openshift_builddefaults_git_http_proxy=http://10.10.10.10:8080
+openshift_builddefaults_git_https_proxy=http://10.10.10.10:8080
+openshift_builddefaults_git_no_proxy='172.30.0.0/16,10.1.0.0/16'
 
 ###########################################################################
 ### OpenShift Host Vars
