@@ -18,6 +18,7 @@ debug_level=4
 
 # default project node selector
 osm_default_node_selector='env=app'
+openshift_clock_enabled=true
 
 ###########################################################################
 ### OpenShift Optional Vars
