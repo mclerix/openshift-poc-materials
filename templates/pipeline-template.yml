@@ -4,14 +4,14 @@ metadata:
   annotations:
     description: Jenkins pipeline template for git-hosted jenkinsfile
     tags: instant-app,jenkins,jenkinsfile,git
-  name: jenkins-pipeline-git
+  name: jenkins-pipeline
 objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
-  name: ${PIPELINE_NAME}
+  name: my-pipeline
   labels:
-      name: ${PIPELINE_NAME}
+      name: my-pipeline
   annotations:
       pipeline.alpha.openshift.io/uses: '[{"name": "myapp", "namespace": "", "kind": "DeploymentConfig"}]'
   spec:
@@ -33,15 +33,12 @@ objects:
   resources: {}
   postCommit: {}
 parameters:
-- description: Jenkins pipeline name
-  name: PIPELINE_NAME
-  value: my-pipeline
 - description: Jenkins pipeline git URL
   name: GIT_PIPELINE_URL
   value: https://github.com/clerixmaxime/openshift-poc-materials.git
 - description: Path to the jenkinsfile
   name: JENKINS_FILE_PATH
-  value: /pipelines/default-pipeline.yml
+  value: Jenkinsfile
 - description: Github secret value
   name: GITHUB_SECRET
   value: github-secret
