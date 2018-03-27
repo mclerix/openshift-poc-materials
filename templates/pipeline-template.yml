@@ -13,7 +13,7 @@ objects:
   labels:
       name: ${PIPELINE_NAME}
   annotations:
-      pipeline.alpha.openshift.io/uses: '[{"name": "inscription-jreda", "namespace": "", "kind": "DeploymentConfig"}]'
+      pipeline.alpha.openshift.io/uses: '[{"name": "myapp", "namespace": "", "kind": "DeploymentConfig"}]'
   spec:
     triggers:
       - type: GitHub
