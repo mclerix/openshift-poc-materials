@@ -15,7 +15,7 @@ ansible_ssh_user=root
 debug_level=4
 
 deployment_type=openshift-enterprise
-openshift_release=v3.7
+openshift_release=v3.9
 #containerized=false
 
 openshift_disable_check=disk_availability,memory_availability,package_availability,docker_image_availability,docker_storage,docker_storage_driver,package_version,package_availability,package_update
@@ -213,4 +213,4 @@ master.internal.tld
 
 # host group for nodes, includes region info
 [nodes]
-master.internal.tld openshift_schedulable=true
+master.internal.tld openshift_schedulable=true openshift_node_labels="{'region': 'infra'}"
