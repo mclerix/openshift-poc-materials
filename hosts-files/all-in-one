@@ -126,14 +126,14 @@ openshift_metrics_install_metrics=true
 #openshift_logging_curator_default_days=7
 #openshift_logging_curator_run_hour=0
 #openshift_logging_curator_run_minute=0
-#openshift_logging_kibana_nodeselector='{"env":"infra"}'
-#openshift_logging_es_nodeselector='{"env":"infra"}'
-#openshift_logging_curator_nodeselector='{"env":"infra"}'
+#openshift_logging_kibana_nodeselector='{"region":"infra"}'
+#openshift_logging_es_nodeselector='{"region":"infra"}'
+#openshift_logging_curator_nodeselector='{"region":"infra"}'
 
 #openshift_logging_use_ops=true
-#openshift_logging_kibana_ops_nodeselector='{"env":"infra"}'
-#openshift_logging_curator_ops_nodeselector='{"env":"infra"}'
-#openshift_logging_es_ops_nodeselector='{"env":"infra"}'
+#openshift_logging_kibana_ops_nodeselector='{"region":"infra"}'
+#openshift_logging_curator_ops_nodeselector='{"region":"infra"}'
+#openshift_logging_es_ops_nodeselector='{"region":"infra"}'
 
 #openshift_logging_kibana_ca=/path/to/file
 #openshift_logging_kibana_ops_ca=/path/to/file
