@@ -13,7 +13,7 @@ objects:
   labels:
       name: ${PIPELINE_NAME}
   annotations:
-      pipeline.alpha.openshift.io/uses: '[{"name": "app-node", "namespace": "", "kind": "DeploymentConfig"}]'
+      pipeline.alpha.openshift.io/uses: '[{"name": "jenkins", "namespace": "", "kind": "DeploymentConfig"}]'
   spec:
     triggers:
       - type: GitHub
@@ -29,8 +29,20 @@ objects:
     strategy:
       jenkinsPipelineStrategy:
         jenkinsfile: >
-          node("nodejs"){
-          
+          node("maven"){
+              stage('Build App Image') {
+                openshiftBuild(namespace: 'cicd-dev', buildConfig: 'myapp', showBuildLogs: 'true')
+              }
+              
+              stage('Deploy Dev') {
+                openshiftDeploy(namespace: 'cicd-dev', deploymentConfig: 'myapp')
+              }
+              
+              stage('Deploy Stage') {
+                input 'Souhaitez-vous déployer l\'application dans l\'environnement stage ?'
+                openshiftTag(namespace: 'cicd-dev', sourceStream: 'myapp',sourceTag: 'latest', destinationStream: 'myapp', destinationTag:'stageReady')
+                openshiftDeploy(namespace: 'cicd-stage', deploymentConfig: 'myapp')
+              }
           }
       type: JenkinsPipeline
   output: {}
