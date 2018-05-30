@@ -307,4 +307,4 @@ parameters:
 - name: SKIP_TLS_VERIFY
   displayName: Skip TLS verification on webhooks
   description: Skip TLS verification on webhooks. Enable with caution!
-  value: "false"
+  value: "true"
