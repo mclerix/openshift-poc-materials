@@ -1,0 +1,369 @@
+---
+
+# See https://docs.openshift.com/container-platform/3.9/install_config/install/host_preparation.html
+
+- name: Prepare hosts for an OpenShift 3.9 installation
+  hosts: OSEv3
+  become: yes
+  vars:
+    ocp_version: 3.9
+    docker_version: 1.13.1
+
+  tasks:
+  - name: Set net.ipv4.ip_forward = 1
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+      reload: yes
+    register: ip_forward
+    tags: network
+
+  - name: Reboot if the ip_forward state has changed
+    shell: 'sleep 5 && /sbin/shutdown -r now "reboot triggered by Ansible"'
+    async: 1
+    poll: 0
+    when: ip_forward.changed
+    tags: network
+
+  - name: Wait for the reboot to complete
+    wait_for_connection:
+      connect_timeout: 5
+      sleep: 5
+      delay: 10
+      timeout: 300
+    when: ip_forward.changed
+    tags: network
+
+  - name: Read the current value of net.ipv4.ip_forward
+    command: sysctl -n net.ipv4.ip_forward
+    changed_when: false
+    register: sysctl
+    tags: network
+
+  - name: Check that net.ipv4.ip_forward = 1
+    assert:
+      that:
+      - ip_forward_value == '1'
+      msg: >
+        The sysctl variable 'net.ipv4.ip_forward' needs to be enabled.
+        If you stumbled on this message, there is a high chance you have this
+        setting hardcoded somewhere. You will have to change it by yourself
+        and re-run this playbook.
+    vars:
+      ip_forward_value: '{{ sysctl.stdout_lines[0] }}'
+    tags: network
+
+  - name: Uninstall things that might interfere with DNS
+    yum:
+      name: '{{ item }}'
+      state: absent
+    with_items:
+    - nscd
+    - bind
+    - bind-chroot
+    tags: rpm,dns
+
+  - name: Make sure iproute is installed (provides the "ss" command)
+    yum: 
+      name: iproute
+      state: installed
+    tags: rpm,dns
+
+  - name: Check who is listening on port 53
+    command: ss -tuplnH sport = :53
+    changed_when: false
+    register: ss
+    tags: dns
+  
+  - name: Make sure no one is listening on port 53
+    assert:
+      that:
+      - 'port_53_listeners|int == 0'
+      msg: >
+        You have something listening on port 53. This will collide with dnsmasq
+        that comes with OpenShift. Please inspect and fix this !
+    vars:
+      port_53_listeners: '{{ ss.stdout_lines|length }}'
+    tags: dns
+
+  - name: Check if /etc/kubernetes exists
+    stat:
+      path: /etc/kubernetes
+    register: etc_kubernetes
+    tags: checks
+
+  - name: Check if /etc/cni exists
+    stat:
+      path: /etc/cni
+    register: etc_cni
+    tags: checks
+
+  - name: Check if there is an old version of Kubernetes installed
+    assert:
+      that:
+      - "'KUBE_CONFIG' not in ansible_env"
+      - "not etc_kubernetes.stat.exists"
+      - "not etc_cni.stat.exists"
+      msg: An old installation of Kubernetes may have been found
+    tags: checks
+
+  - name: Make sure SELinux is enabled
+    lineinfile:
+      path: /etc/sysconfig/selinux
+      line: 'SELINUX=enforcing'
+      regexp: '^ *SELINUX='
+      state: present
+    register: selinux
+    tags: selinux
+
+  - name: Reboot if SELinux state has changed
+    shell: 'sleep 5 && /sbin/shutdown -r now "reboot triggered by Ansible"'
+    async: 1
+    poll: 0
+    when: selinux.changed
+    tags: selinux
+
+  - name: Waiting for server(s) to come back
+    wait_for_connection:
+      connect_timeout: 5
+      sleep: 5
+      delay: 10
+      timeout: 300
+    when: selinux.changed
+    tags: selinux
+
+  - name: Install the required software
+    yum:
+      name: '{{ item }}'
+      state: installed
+    with_items:
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+
+  - name: Install some optional software
+    yum:
+      name: '{{ item }}'
+      state: installed
+    with_items:
+    - vim-enhanced
+    - tmux
+    - unzip
+    - tcpdump
+    - telnet
+    - strace
+    - man-pages
+    - man
+    - iptraf
+    - wget
+    - openssh-clients
+    - httpd-tools
+    - net-tools
+    - nfs-utils
+    - yum-utils
+    - openldap-clients
+    tags: rpm
+
+  - name: Install NetworkManager
+    yum:
+      name: NetworkManager
+      state: installed
+    tags: rpm,NetworkManager
+
+  - name: Make sure NetworkManager is enabled
+    service:
+      name: NetworkManager
+      state: started
+      enabled: yes
+    tags: rpm,NetworkManager
+
+  - name: Make sure NetworkManager is enabled for the default interface
+    block: 
+    - name: Enable NM_CONTROLLED
+      lineinfile:
+          path: /etc/sysconfig/network-scripts/ifcfg-{{ interface }}
+          regexp: '^\s*NM_CONTROLLED='
+          backup: yes
+          state: present
+          line: NM_CONTROLLED=yes
+      register: nm_controlled
+    - name: Enable PEERDNS
+      lineinfile:
+          path: /etc/sysconfig/network-scripts/ifcfg-{{ interface }}
+          regexp: '^\s*PEERDNS='
+          backup: yes
+          state: present
+          line: PEERDNS=yes
+      register: peer_dns
+    vars:
+      interface: '{{ ansible_default_ipv4.interface }}'
+    tags: NetworkManager
+
+  - name: Reload the network configuration
+    shell: 'sleep 5 && /etc/init.d/network restart'
+    async: 1
+    poll: 0
+    when: nm_controlled.changed or peer_dns.changed
+    tags: NetworkManager
+
+  - name: Waiting for the connection come back
+    wait_for_connection:
+      connect_timeout: 5
+      sleep: 5
+      delay: 10
+      timeout: 300
+    when: nm_controlled.changed or peer_dns.changed
+    tags: NetworkManager
+
+  - name: Make sure the system is up-to-date
+    yum:
+      name: '*'
+      state: latest
+    tags: rpm
+
+  - name: Make sure the wildcard dns domain is defined in the inventory
+    assert:
+      that:
+      - openshift_master_default_subdomain is defined
+      msg: >
+        Please define the "openshift_master_default_subdomain" variable in your
+        inventory file!
+    tags: dns
+
+  - name: Check if the wildcard dns domain is working
+    command: 'host {{ sample_record }}'
+    vars:
+      sample_record: 'test-{{ ansible_date_time.epoch }}.{{ openshift_master_default_subdomain }}'
+    changed_when: false
+    tags: dns
+
+  - name: Get the machine FQDN
+    command: hostname -f
+    register: hostname_f
+    changed_when: false
+    tags: dns
+  
+  - set_fact:
+      discovered_fqdn: '{{ hostname_f.stdout_lines[0] }}'
+    tags: dns
+
+  - name: Make sure the hostnames are consistent
+    assert:
+      that:
+      - inventory_hostname_short == discovered_hostname
+      - inventory_hostname == discovered_fqdn
+      msg: >
+        Your hostnames are not consistent ! Check your /etc/hosts, 
+        /etc/sysconfig/hostname and the output of "hostnamectl status". 
+    vars:
+      discovered_hostname: '{{ ansible_hostname }}'
+    tags: dns
+
+  - name: Find the IP Address behind the hostname of this machine
+    command: getent ahosts '{{ discovered_fqdn }}'
+    register: getent_ahosts_cmd
+    changed_when: false
+    tags: dns
+
+  - block:
+    - name: Make sure the FQDN resolves to only one IP address
+      assert:
+        that:
+        - discovered_public_ips|length == 1
+        msg: >
+          I found that this machine fqdn ({{ inventory_hostname}}) resolves to 
+          {{ discovered_public_ips|length }} IPs and that could cause issues.
+          Please fix this !
+
+    - name: Make sure the FQDN resolves to the IP address of the network interface holding the default route
+      assert:
+        that:
+        - '"interface" in ansible_default_ipv4'
+        - ansible_default_ipv4.address == discovered_public_ips|first
+        msg: >
+          The IP behind this machine FQDN does not resolves to the network 
+          interface holding the default route.
+    vars:
+      discovered_public_ips: '{{ getent_ahosts_cmd.stdout_lines|select(''search'', ''\bSTREAM\b'')|map(''regex_replace'', ''^(\S+)\s+STREAM\b.*$'', ''\1'')|list }}'
+    tags: dns
+
+  - name: First, disable any repos (using subscription-manager)
+    command: subscription-manager repos --disable="*"
+    tags: rpm
+
+  - name: Make sure mandatory repos are enabled
+    command: subscription-manager repos --enable {{ item }}
+    with_items:
+      - rhel-7-server-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ose-{{ ocp_version }}-rpms
+      - rhel-7-fast-datapath-rpms # see https://access.redhat.com/solutions/3008401
+      - rhel-7-server-ansible-2.4-rpms
+    tags: rpm
+
+  - name: Install Docker
+    yum:
+      name: 'docker-{{ docker_version }}'
+      state: installed
+    tags: rpm,docker
+
+  - name: Find the filesystem hosting /var/lib/docker
+    command: df -k /var/lib/docker
+    register: df
+    changed_when: false
+    tags: docker
+
+  - name: Make sure the filesystem hosting /var/lib/docker is formatted as XFS
+    assert:
+      that:
+      - 'docker_filesystem == ''xfs'''
+      msg: "The filesystem holding /var/lib/docker must be formatted as XFS"
+    vars:
+      docker_mount_point: '{{ df.stdout_lines[1].split()[5] }}'
+      # TODO: replace match with "equalto" as soon as the Jinja shipped with RHEL is updated
+      docker_filesystem: '{{ ansible_mounts|selectattr(''mount'', ''match'', ''^'' ~ docker_mount_point ~ ''$'')|map(attribute=''fstype'' )|first }}'
+    tags: docker
+      
+  - name: Stop Docker
+    service:
+      name: docker
+      state: stopped
+      enabled: yes
+    tags: docker
+
+  - name: Make sure overlayfs is enabled
+    lineinfile:
+      path: /etc/sysconfig/docker-storage
+      line: 'DOCKER_STORAGE_OPTIONS="--storage-driver overlay2"'
+      regexp: '^ *DOCKER_STORAGE_OPTIONS='
+      state: present
+    register: docker_storage
+    tags: docker
+
+  - name: Cleanup the Docker local storage
+    file:
+      path: /var/lib/docker
+      state: absent
+    tags: docker
+    when: docker_storage.changed
+
+  - name: Start Docker
+    service:
+      name: docker
+      state: started
+      enabled: yes
+    tags: docker
+
+  - name: Install atomic-openshift-utils
+    yum:
+      name: atomic-openshift-utils
+      state: installed
+    tags: rpm,openshift
