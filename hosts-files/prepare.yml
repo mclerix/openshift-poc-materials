@@ -2,11 +2,11 @@
 
 # See https://docs.openshift.com/container-platform/3.9/install_config/install/host_preparation.html
 
-- name: Prepare hosts for an OpenShift 3.9 installation
+- name: Prepare hosts for an OpenShift 3.10 installation
   hosts: OSEv3
   become: yes
   vars:
-    ocp_version: 3.9
+    ocp_version: 3.10
     docker_version: 1.13.1
 
   tasks:
@@ -305,7 +305,6 @@
       - rhel-7-server-rpms
       - rhel-7-server-extras-rpms
       - rhel-7-server-ose-{{ ocp_version }}-rpms
-      - rhel-7-fast-datapath-rpms # see https://access.redhat.com/solutions/3008401
       - rhel-7-server-ansible-2.4-rpms
     tags: rpm
 
@@ -364,6 +363,6 @@
 
   - name: Install atomic-openshift-utils
     yum:
-      name: atomic-openshift-utils
+      name: openshift-ansible
       state: installed
     tags: rpm,openshift
