@@ -1,0 +1,130 @@
+node('nodejs') {
+
+    stage ("DEV - Build") {
+        parallel(
+            'Cluster1': {
+                openshiftBuild(
+                    namespace: params.DEV_PROJECT,
+                    buildConfig: params.BC_APP_NAME,
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN,
+                    showBuildLogs: 'true'
+                ) 
+            },
+            'Cluster2': {
+                openshiftBuild(
+                    namespace: params.DEV_PROJECT,
+                    buildConfig: params.BC_APP_NAME,
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN,
+                    showBuildLogs: 'true'
+                )
+            }
+        )
+    }
+
+    stage ("DEV - Deploy") {
+        parallel (
+            'Cluster 1': {
+                openshiftDeploy(
+                    namespace: params.DEV_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN
+                )
+
+                openshiftVerifyDeployment(
+                    namespace: params.DEV_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN
+                )
+            },
+            'Cluster 2': {
+                openshiftDeploy(
+                    namespace: params.DEV_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN
+                )
+
+                openshiftVerifyDeployment(
+                    namespace: params.DEV_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN
+                )
+            }
+        )
+    }
+
+    stage ("Promote image for TEST environment") {
+        input "Tag image for promotion in TEST environment?"
+        parallel (
+            'Cluster 1': {
+                openshiftTag (
+                    alias: "false",
+                    destStream: params.APP_IMAGE_STREAM,
+                    destTag: "testReady",
+                    destinationNamespace: params.DEV_PROJECT,
+                    namespace: params.DEV_PROJECT,
+                    srcStream: params.APP_IMAGE_STREAM,
+                    srcTag: "latest",
+                    verbose: "false",
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN
+                )
+            },
+            'Cluster 2': {
+                openshiftTag (
+                    alias: "false",
+                    destStream: params.APP_IMAGE_STREAM,
+                    destTag: "testReady",
+                    destinationNamespace: params.DEV_PROJECT,
+                    namespace: params.DEV_PROJECT,
+                    srcStream: params.APP_IMAGE_STREAM,
+                    srcTag: "latest",
+                    verbose: "false",
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN
+                )
+            }
+        )
+    }
+
+    stage ("TEST - Deploy") {
+
+        parallel (
+            'Cluster 1': {
+                openshiftDeploy(
+                    namespace: params.TEST_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN
+                )
+
+                openshiftVerifyDeployment(
+                    namespace: params.TEST_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_1_API_URL,
+                    authToken: params.CLUSTER_1_AUTH_TOKEN
+                )
+            },
+            'Cluster 2': {
+                openshiftDeploy(
+                    namespace: params.TEST_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN
+                )
+
+                openshiftVerifyDeployment(
+                    namespace: params.TEST_PROJECT,
+                    deploymentConfig: params.DC_APP_NAME,
+                    apiURL: params.CLUSTER_2_API_URL,
+                    authToken: params.CLUSTER_2_AUTH_TOKEN
+                )
+            }
+        )
+    }
+}

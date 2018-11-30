@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: deploy-pipeline-template
+  annotations:
+    description: "Deployment pipeline over multiple clusters demonstration"
+    tags: "cicd,multi-paas,pipeline,deploy-pipeline"
+    icon: "icon-jenkins"
+    openshift.io/display-name: "Multi DC Pipeline"
+  labels:
+    template: multi-dc-pipeline
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: multi-dc-pipeline
+    labels:
+      name: multi-dc-pipeline
+  spec:
+    triggers:
+      - type: Generic
+        generic:
+          secret: ${PIPELINE_TRIGGER_SECRET}
+    runPolicy: Serial
+    source:
+      type: None
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        env:
+        - name: "SKIP_TLS"
+          value: "true"
+        - name: "DEV_PROJECT"
+          value: ${DEV_PROJECT}
+        - name: "TEST_PROJECT"
+          value: ${TEST_PROJECT}
+        - name: "BC_APP_NAME"
+          value: ${BC_APP_NAME}
+        - name: "DC_APP_NAME"
+          value: ${DC_APP_NAME}
+        - name: "APP_IMAGE_STREAM"
+          value: ${APP_IMAGE_STREAM}
+        - name: "CLUSTER_1_API_URL"
+          value: ${CLUSTER_1_API_URL}
+        - name: "CLUSTER_1_AUTH_TOKEN"
+          value: ${CLUSTER_1_AUTH_TOKEN}
+        - name: "CLUSTER_2_API_URL"
+          value: ${CLUSTER_2_API_URL}
+        - name: "CLUSTER_2_AUTH_TOKEN"
+          value: ${CLUSTER_2_AUTH_TOKEN}
+        jenkinsfile: |-
+
+          node('nodejs') {
+
+          }
+
+    output: {}
+    resources: {}
+    postCommit: {}
+parameters:
+- description: "DEV project"
+  name: DEV_PROJECT
+  value: "multi-cicd-dev"
+  required: true
+- description: "TEST project"
+  name: TEST_PROJECT
+  value: "multi-cicd-test"
+  required: true
+- description: "BuildConfig name"
+  name: BC_APP_NAME
+  value: "myapp"
+  required: true
+- description: "DeploymentConfig name"
+  name: DC_APP_NAME
+  value: "myapp"
+  required: true
+- description: "Name of the openshift imageStream for the application"
+  name: APP_IMAGE_STREAM
+  value: "myapp"
+  required: true
+- description: "OpenShift API URL for cluster 1"
+  name: CLUSTER_1_API_URL
+  value: "https://ocp-master01.openhybridcloud.io:8443"
+  required: true
+- name: CLUSTER_1_AUTH_TOKEN
+  description: "OpenShift authentication token for cluster 1"
+  displayName: Cluster 1 Authentication Token
+  required: true
+- description: "OpenShift API URL for cluster 2"
+  name: CLUSTER_2_API_URL
+  value: "https://openshift-master.openshift-mclerix.com:443"
+  required: true
+- name: CLUSTER_2_AUTH_TOKEN
+  description: "OpenShift authentication token for cluster 2"
+  displayName: Cluster 2 Authentication Token
+  required: true
+- name: PIPELINE_TRIGGER_SECRET
+  description: ""
+  displayName: Trigger secret
+  required: true
+  value: "secret101"

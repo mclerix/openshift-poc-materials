@@ -1,0 +1,3 @@
+build-monitor-plugin:1.12+build.201708172343
+slack:2.3
+greenballs:1.15

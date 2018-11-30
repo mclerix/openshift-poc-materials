@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<com.openshift.jenkins.plugins.OpenShift_-DescriptorImpl plugin="openshift-client@1.0.7">
+  <configVersion>1</configVersion>
+  <clusterConfigs>
+    <com.openshift.jenkins.plugins.ClusterConfig>
+      <name>azure</name>
+      <serverUrl>https://ocp-rh-forum-2.northeurope.cloudapp.azure.com:8443</serverUrl>
+      <skipTlsVerify>true</skipTlsVerify>
+      <credentialsId>jenkins-azure</credentialsId>
+    </com.openshift.jenkins.plugins.ClusterConfig>
+    <com.openshift.jenkins.plugins.ClusterConfig>
+      <name>ovh</name>
+      <serverUrl>https://openshift.openhybridcloud.io:8443</serverUrl>
+      <skipTlsVerify>true</skipTlsVerify>
+      <credentialsId>jenkins-ovh</credentialsId>
+    </com.openshift.jenkins.plugins.ClusterConfig>
+  </clusterConfigs>
+  <ocTool>oc</ocTool>
+</com.openshift.jenkins.plugins.OpenShift_-DescriptorImpl>
