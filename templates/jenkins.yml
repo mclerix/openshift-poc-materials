@@ -141,7 +141,7 @@ objects:
   metadata:
     name: ${JENKINS_SERVICE_NAME}_edit
   roleRef:
-    name: edit
+    name: ${JENKINS_ROLE_REF}
   subjects:
   - kind: ServiceAccount
     name: ${JENKINS_SERVICE_NAME}
@@ -221,3 +221,7 @@ parameters:
   displayName: Jenkins Arguments
   name: JENKINS_OPTS
   value: --sessionTimeout=0
+- description: Jenkins service account role binding
+  displayName: Jenkins service account role
+  name: JENKINS_ROLE_REF
+  value: edit
